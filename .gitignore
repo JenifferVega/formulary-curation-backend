@@ -1,0 +1,19 @@
+# secretos — NUNCA subir
+.env
+*.env
+!.env.example
+
+# entorno Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+
+uploads/
+datasets/
+classified_out/
+
+*_model/
+formulary_classifier/
+cross_encoder_pairwise_bge/

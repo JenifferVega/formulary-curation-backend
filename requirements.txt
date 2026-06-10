@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pymupdf
+pillow
+transformers
+torch
+huggingface_hub
+python-dotenv
+
+# Modelo 5 (matcher) — índice RxNorm bi-encoder
+txtai
+einops          # requerido por el encoder nomic-embed (código remoto)
+
+# Chat de corrección (Modelo 2) — uno de los dos según tu proveedor
+google-genai
+anthropic
