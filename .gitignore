@@ -1,19 +1,48 @@
-# secretos — NUNCA subir
+# ── secrets ──────────────────────────────────────────────────────────────────
 .env
 *.env
 !.env.example
 
-# entorno Python
+# ── Python ───────────────────────────────────────────────────────────────────
 .venv/
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
 
-
+# ── uploaded PDFs and extracted page data ────────────────────────────────────
 uploads/
-datasets/
-classified_out/
 
+# ── curated training datasets (JSONL) ────────────────────────────────────────
+datasets/
+
+# ── fine-tuned model checkpoints ─────────────────────────────────────────────
+trained_models/
+
+# ── legacy output folders ────────────────────────────────────────────────────
+classified_out/
 *_model/
 formulary_classifier/
 cross_encoder_pairwise_bge/
+
+# ── model weight files anywhere in the tree ──────────────────────────────────
+*.safetensors
+*.bin
+*.pt
+*.ckpt
+*.onnx
+
+# ── rendered page images (generated on demand) ───────────────────────────────
+*.png
+*.jpg
+*.jpeg
+
+# ── OS / editor noise ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
