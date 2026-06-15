@@ -1,8 +1,8 @@
 """Modelo 1 — endpoints (/api/relevance/*)."""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from app import config
-from app.core import pdf, store, uploads
+from app.core import pdf, store, trainer, uploads
 from . import service
 from .schemas import ClassifyReq, SaveReq
 
@@ -17,13 +17,14 @@ def _stats() -> dict:
 
 
 @router.post("/classify")
-def classify(req: ClassifyReq):
+def classify(req: ClassifyReq, trained: bool = Query(False)):
     entry = uploads.get(req.upload_id)
     if not entry:
         raise HTTPException(404, "Upload not found (re-upload the PDF).")
     thr = config.DEFAULT_THRESHOLD if req.threshold is None else float(req.threshold)
+    ctx = trainer.get_trained_model("relevance") if trained else None
     try:
-        rows = service.classify_pages(entry["pages"], thr)
+        rows = service.classify_pages(entry["pages"], thr, _ctx=ctx)
     except RuntimeError as exc:
         raise HTTPException(503, str(exc)) from exc
     for row in rows:

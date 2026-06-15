@@ -18,8 +18,9 @@ def status() -> dict:
     return _model.status()
 
 
-def candidates(query: str, top_k: int | None = None) -> list[dict]:
-    """query → candidatos RxNorm reordenados por el cross-encoder."""
+def candidates(query: str, top_k: int | None = None, _ctx=None) -> list[dict]:
+    """query → candidatos RxNorm reordenados por el cross-encoder.
+    Pass _ctx=(tok, model, device) to use a trained model."""
     import torch
 
     k = top_k or config.MATCH_TOP_K
@@ -27,7 +28,7 @@ def candidates(query: str, top_k: int | None = None) -> list[dict]:
     if not hits:
         return []
 
-    tok, model, device = _model.load()
+    tok, model, device = _ctx if _ctx is not None else _model.load()
     enc = tok(
         [query] * len(hits),
         [c.get("text", "") for c in hits],

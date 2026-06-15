@@ -15,11 +15,12 @@ def status() -> dict:
     return _model.status()
 
 
-def classify_pages(pages: list[dict], threshold: float) -> list[dict]:
-    """[{page,text}] → [{page,text,score,ai_label,label,too_short}]."""
+def classify_pages(pages: list[dict], threshold: float, _ctx=None) -> list[dict]:
+    """[{page,text}] → [{page,text,score,ai_label,label,too_short}].
+    Pass _ctx=(tok, model, device) to use a trained model instead of the default."""
     import torch
 
-    tok, model, device = _model.load()
+    tok, model, device = _ctx if _ctx is not None else _model.load()
     out: list[dict] = []
     with torch.no_grad():
         for p in pages:

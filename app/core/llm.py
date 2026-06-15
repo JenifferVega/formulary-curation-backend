@@ -1,11 +1,10 @@
-"""Cliente LLM para el chat de corrección — soporta Anthropic y Gemini.
+"""Cliente LLM — soporta Anthropic y Gemini.
 
-El proveedor se elige por `config.chat_provider()` (forzado o autodetectado por
-la API key presente). Expone:
-  - status(): para /api/health (qué proveedor/modelo y si hay key)
-  - complete(system, user): texto de respuesta del LLM
-
-Los SDKs se importan de forma perezosa para no exigirlos si no se usa el chat.
+Expone:
+  - status(): proveedor/modelo y si hay key
+  - complete(system, user): llamada single-turn
+  - complete_chat(system, messages): llamada multi-turn
+    messages = [{"role": "user"|"assistant", "content": str}, ...]
 """
 from __future__ import annotations
 
@@ -24,45 +23,66 @@ def status() -> dict:
 
 def complete(system: str, user: str, max_tokens: int = 8192,
              temperature: float = 0.0, json_mode: bool = False) -> str:
-    """Una llamada de chat. Devuelve el texto. Lanza RuntimeError con mensaje
-    accionable si no hay proveedor/clave o si el SDK no está instalado.
+    """Single-turn convenience wrapper."""
+    return complete_chat(system, [{"role": "user", "content": user}],
+                         max_tokens=max_tokens, temperature=temperature,
+                         json_mode=json_mode)
 
-    json_mode=True fuerza salida JSON (Gemini) — úsalo cuando esperas un objeto."""
+
+def complete_chat(system: str, messages: list[dict],
+                  max_tokens: int = 8192, temperature: float = 0.0,
+                  json_mode: bool = False) -> str:
+    """Multi-turn chat. messages = [{role, content}, ...].
+    Lanza RuntimeError si no hay proveedor configurado."""
     prov = config.chat_provider()
     if prov is None:
         raise RuntimeError(
-            "No hay LLM configurado para el chat. Pon GEMINI_API_KEY o "
-            "ANTHROPIC_API_KEY en backend/.env (y opcional CHAT_PROVIDER).")
-
+            "No hay LLM configurado. Pon GEMINI_API_KEY o ANTHROPIC_API_KEY "
+            "en backend/.env (y opcional CHAT_PROVIDER).")
     if prov == "anthropic":
-        return _anthropic(system, user, max_tokens, temperature)
-    return _gemini(system, user, max_tokens, temperature, json_mode)
+        return _anthropic_chat(system, messages, max_tokens, temperature)
+    return _gemini_chat(system, messages, max_tokens, temperature, json_mode)
 
 
-def _anthropic(system: str, user: str, max_tokens: int, temperature: float) -> str:
+def _anthropic_chat(system: str, messages: list[dict],
+                    max_tokens: int, temperature: float) -> str:
     try:
         import anthropic
     except ImportError as exc:
         raise RuntimeError("Falta el SDK: pip install anthropic") from exc
     client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    # Anthropic requires alternating user/assistant; roles already match.
+    api_msgs = [{"role": m["role"], "content": m["content"]} for m in messages]
     resp = client.messages.create(
         model=config.ANTHROPIC_CHAT_MODEL,
         max_tokens=max_tokens,
         temperature=temperature,
         system=system,
-        messages=[{"role": "user", "content": user}],
+        messages=api_msgs,
     )
-    return "".join(block.text for block in resp.content if getattr(block, "type", "") == "text")
+    return "".join(block.text for block in resp.content
+                   if getattr(block, "type", "") == "text")
 
 
-def _gemini(system: str, user: str, max_tokens: int, temperature: float,
-            json_mode: bool = False) -> str:
+def _gemini_chat(system: str, messages: list[dict],
+                 max_tokens: int, temperature: float,
+                 json_mode: bool = False) -> str:
     try:
         from google import genai
         from google.genai import types
     except ImportError as exc:
         raise RuntimeError("Falta el SDK: pip install google-genai") from exc
     client = genai.Client(api_key=config.GEMINI_API_KEY)
+
+    # Gemini uses "model" role instead of "assistant"
+    def _to_gemini_role(r: str) -> str:
+        return "model" if r == "assistant" else r
+
+    contents = [
+        types.Content(role=_to_gemini_role(m["role"]),
+                      parts=[types.Part(text=m["content"])])
+        for m in messages
+    ]
 
     kwargs = dict(
         system_instruction=system,
@@ -71,8 +91,6 @@ def _gemini(system: str, user: str, max_tokens: int, temperature: float,
     )
     if json_mode:
         kwargs["response_mime_type"] = "application/json"
-    # Desactiva el "thinking" de gemini-2.5-* para no gastar tokens de salida
-    # (best-effort: algunos modelos no lo soportan).
     try:
         kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
     except Exception:  # noqa: BLE001
@@ -80,11 +98,11 @@ def _gemini(system: str, user: str, max_tokens: int, temperature: float,
 
     try:
         resp = client.models.generate_content(
-            model=config.GEMINI_CHAT_MODEL, contents=user,
+            model=config.GEMINI_CHAT_MODEL, contents=contents,
             config=types.GenerateContentConfig(**kwargs))
-    except Exception:  # noqa: BLE001 — reintenta sin thinking_config si el modelo lo rechaza
+    except Exception:  # noqa: BLE001
         kwargs.pop("thinking_config", None)
         resp = client.models.generate_content(
-            model=config.GEMINI_CHAT_MODEL, contents=user,
+            model=config.GEMINI_CHAT_MODEL, contents=contents,
             config=types.GenerateContentConfig(**kwargs))
     return resp.text or ""

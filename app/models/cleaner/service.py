@@ -15,12 +15,13 @@ def status() -> dict:
     return _model.status()
 
 
-def clean_texts(texts: list[str], batch_size: int = 8) -> list[dict]:
-    """[str] → [{input, output, conf}]. output = texto canónico generado."""
+def clean_texts(texts: list[str], batch_size: int = 8, _ctx=None) -> list[dict]:
+    """[str] → [{input, output, conf}]. output = texto canónico generado.
+    Pass _ctx=(tok, model, device) to use a trained model."""
     import math
     import torch
 
-    tok, model, device = _model.load()
+    tok, model, device = _ctx if _ctx is not None else _model.load()
     rows: list[dict] = []
     for start in range(0, len(texts), batch_size):
         batch = texts[start:start + batch_size]

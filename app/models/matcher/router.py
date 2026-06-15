@@ -1,8 +1,8 @@
 """Modelo 5 — endpoints (/api/matcher/*)."""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from app import config
-from app.core import store
+from app.core import store, trainer
 from . import service
 from .schemas import CandidatesReq, SaveReq
 
@@ -19,12 +19,13 @@ def _stats() -> dict:
 
 
 @router.post("/candidates")
-def candidates(req: CandidatesReq):
+def candidates(req: CandidatesReq, trained: bool = Query(False)):
     q = req.query.strip()
     if not q:
         raise HTTPException(400, "Empty query.")
+    ctx = trainer.get_trained_model("matcher") if trained else None
     try:
-        cands = service.candidates(q, req.top_k)
+        cands = service.candidates(q, req.top_k, _ctx=ctx)
     except RuntimeError as exc:
         raise HTTPException(503, str(exc)) from exc
     return {"query": q, "candidates": cands, "count": len(cands)}

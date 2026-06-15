@@ -6,6 +6,7 @@ pillow
 transformers
 torch
 huggingface_hub
+datasets
 python-dotenv
 
 # Modelo 5 (matcher) — índice RxNorm bi-encoder

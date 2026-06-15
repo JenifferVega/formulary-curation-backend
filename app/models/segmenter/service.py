@@ -18,12 +18,17 @@ def status() -> dict:
     return _model.status()
 
 
-def predict_spans(text: str, max_len: int = 512, stride: int = 128) -> list[dict]:
-    """Texto de una página → [{start,end,conf,snippet}] de cada medicamento."""
+def predict_spans(text: str, max_len: int = 512, stride: int = 128, _ctx=None) -> list[dict]:
+    """Texto de una página → [{start,end,conf,snippet}] de cada medicamento.
+    Pass _ctx=(tok, model, device) to use a trained model."""
     import torch
 
-    tok, model, device = _model.load()
-    id2label = _model.id2label
+    if _ctx is not None:
+        tok, model, device = _ctx
+        id2label = {int(k): v for k, v in model.config.id2label.items()}
+    else:
+        tok, model, device = _model.load()
+        id2label = _model.id2label
     enc = tok(text, truncation=True, max_length=max_len, stride=stride,
               return_overflowing_tokens=True, return_offsets_mapping=True,
               padding=True, return_tensors="pt")

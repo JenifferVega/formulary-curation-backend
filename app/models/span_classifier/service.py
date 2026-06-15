@@ -16,11 +16,12 @@ def status() -> dict:
     return _model.status()
 
 
-def classify_texts(texts: list[str]) -> list[dict]:
-    """[str] → [{text, ai_label, label, conf, p_single, p_multi, p_broken, possible_broken}]."""
+def classify_texts(texts: list[str], _ctx=None) -> list[dict]:
+    """[str] → [{text, ai_label, label, conf, p_single, p_multi, p_broken, possible_broken}].
+    Pass _ctx=(tok, model, device) to use a trained model."""
     import torch
 
-    tok, model, device = _model.load()
+    tok, model, device = _ctx if _ctx is not None else _model.load()
     enc = tok(texts, return_tensors="pt", padding=True, truncation=True, max_length=256)
     enc = {k: v.to(device) for k, v in enc.items()}
     with torch.no_grad():

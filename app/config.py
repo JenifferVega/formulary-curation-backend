@@ -78,6 +78,11 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 DATASETS_DIR = Path(os.getenv("DATASETS_DIR", str(BACKEND_DIR / "datasets")))
 DATASETS_DIR.mkdir(parents=True, exist_ok=True)
 
+TRAINED_MODELS_DIR = Path(os.getenv("TRAINED_MODELS_DIR", str(BACKEND_DIR / "trained_models")))
+TRAINED_MODELS_DIR.mkdir(parents=True, exist_ok=True)
+
+MIN_TRAIN_EXAMPLES = int(os.getenv("MIN_TRAIN_EXAMPLES", "50"))
+
 # Subcarpeta de dataset por modelo (la que apuntará cada trainer).
 RELEVANCE_OUT = DATASETS_DIR / "relevance"
 SEGMENTER_OUT = DATASETS_DIR / "segmenter"

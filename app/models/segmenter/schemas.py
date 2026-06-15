@@ -19,14 +19,18 @@ class SaveReq(BaseModel):
     spans: list[Span]
 
 
+class HistoryMessage(BaseModel):
+    role: str        # "user" | "assistant"
+    content: str
+
+
 class ChatReq(BaseModel):
-    """Pista del revisor para corregir la segmentación de una página."""
-    text: str                      # texto de la página
-    spans: list[Span] = []         # medicamentos detectados actualmente
-    message: str                   # instrucción en lenguaje natural
+    text: str
+    spans: list[Span] = []
+    message: str
+    history: list[HistoryMessage] = []   # previous turns for context resolver
 
 
 class VerifyReq(BaseModel):
-    """Verificar la segmentación de la red contra una relectura del texto (LLM)."""
     text: str
-    spans: list[Span] = []         # lo que segmentó la red
+    spans: list[Span] = []
